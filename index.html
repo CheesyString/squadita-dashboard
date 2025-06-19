@@ -279,10 +279,38 @@
       });
       const factionOnePlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamOne.toLowerCase());
       const factionTwoPlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamTwo.toLowerCase());
-      const factionOneSquads = groupPlayersBySquad(factionOnePlayers, playersJson.included);
-      const factionTwoSquads = groupPlayersBySquad(factionTwoPlayers, playersJson.included);
-      document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
-      document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
+const factionOneSquads = [];
+const factionTwoSquads = [];
+const noFactionSquads = [];
+
+const teamOneId = serverJson.data.attributes.details.squad_teamOne;
+const teamTwoId = serverJson.data.attributes.details.squad_teamTwo;
+
+const squadsById = {};
+playersJson.included.forEach(squad => {
+  squadsById[squad.id] = squad.attributes.name;
+});
+
+const squadsGrouped = {};
+players.forEach(player => {
+  const squadID = player.relationships?.squad?.data?.id || 'no_squad';
+  if (!squadsGrouped[squadID]) squadsGrouped[squadID] = [];
+  squadsGrouped[squadID].push(player.attributes.name);
+});
+
+for (const [squadID, members] of Object.entries(squadsGrouped)) {
+  const squadName = squadsById[squadID] || 'No Squad';
+  if (squadID === teamOneId) {
+    factionOneSquads.push({ name: squadName, players: members });
+  } else if (squadID === teamTwoId) {
+    factionTwoSquads.push({ name: squadName, players: members });
+  } else {
+    noFactionSquads.push({ name: squadName, players: members });
+  }
+}
+
+document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
+document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
     } catch (e) {
       document.getElementById('server-name').textContent = '';
       document.getElementById('server-info').innerHTML = `<div style="color:#f04747;">Failed to load server info: ${e.message}</div>`;
