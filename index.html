@@ -86,6 +86,48 @@
     font-style: italic;
   }
 
+  /* Factions container styles */
+  #factions-container {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .faction-box {
+    flex: 1 1 300px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  }
+
+  .faction-box h3 {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .squads-list > div {
+    margin-bottom: 1rem;
+  }
+
+  .squads-list strong {
+    display: block;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .squads-list ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+
+  .squads-list li {
+    margin-bottom: 0.15rem;
+  }
+
   @media (max-width: 480px) {
     body {
       padding: 1rem;
@@ -109,8 +151,20 @@
 
   <div style="text-align: center; margin-top: 2rem;">
     <img src="https://raw.githubusercontent.com/CheesyString/squadita-dashboard/refs/heads/main/solo%20icona%20squad%20ita.png" 
-     alt="Custom Image" 
-     style="display: block; margin: 2rem auto 0 auto; max-width: 300px;" />
+         alt="Custom Image" 
+         style="display: block; margin: 2rem auto 0 auto; max-width: 300px;" />
+  </div>
+
+  <!-- NEW: Factions container -->
+  <div id="factions-container">
+    <div id="faction-one" class="faction-box">
+      <h3>Faction One</h3>
+      <div class="squads-list">Loading squads...</div>
+    </div>
+    <div id="faction-two" class="faction-box">
+      <h3>Faction Two</h3>
+      <div class="squads-list">Loading squads...</div>
+    </div>
   </div>
 
   <footer>
@@ -132,6 +186,17 @@
   function shortenTeamName(team) {
     if (!team) return 'Unknown';
     return team.split(/[_ ]/)[0];
+  }
+
+  function buildSquadsHTML(squads) {
+    return squads.map(squad => `
+      <div>
+        <strong>${squad.name}</strong>
+        <ul>
+          ${squad.players.map(p => `<li>${p}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('');
   }
 
   async function fetchServer() {
@@ -182,9 +247,30 @@
           <div class="value">${teamOne} vs ${teamTwo}</div>
         </div>
       `;
+
+      // MOCK squads & players - replace with real data source if available
+      const factionOneSquads = [
+        { name: 'Alpha Squad', players: ['Player1', 'Player2', 'Player3'] },
+        { name: 'Bravo Squad', players: ['Player4', 'Player5'] },
+      ];
+      const factionTwoSquads = [
+        { name: 'Charlie Squad', players: ['Player6', 'Player7'] },
+        { name: 'Delta Squad', players: ['Player8', 'Player9', 'Player10'] },
+      ];
+
+      // Update faction headers
+      document.querySelector('#faction-one h3').textContent = teamOne;
+      document.querySelector('#faction-two h3').textContent = teamTwo;
+
+      // Update squads list
+      document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
+      document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
+
     } catch (e) {
       document.getElementById('server-name').textContent = '';
       document.getElementById('server-info').innerHTML = `<div style="color:#f04747;">Failed to load server info: ${e.message}</div>`;
+      document.querySelector('#faction-one .squads-list').textContent = '';
+      document.querySelector('#faction-two .squads-list').textContent = '';
     }
   }
 
