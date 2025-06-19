@@ -74,39 +74,6 @@
     font-size: 0.9rem;
     font-style: italic;
   }
-  #factions-container {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 2rem;
-    flex-wrap: wrap;
-  }
-  .faction-box {
-    flex: 1 1 300px;
-    background: #1e1e1e;
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-  }
-  .faction-box h3 {
-    text-align: center;
-    margin-bottom: 1rem;
-  }
-  .squads-list > div {
-    margin-bottom: 0.7rem;
-    text-align: center;
-  }
-  @media (max-width: 480px) {
-    body {
-      padding: 1rem;
-    }
-    h1 {
-      font-size: 2rem;
-    }
-    .card .value {
-      font-size: 1.1rem;
-    }
-  }
 </style>
 </head>
 <body>
@@ -116,16 +83,6 @@
   <div id="server-info">Loading server info...</div>
   <div style="text-align: center; margin-top: 2rem;">
     <img src="https://raw.githubusercontent.com/CheesyString/squadita-dashboard/refs/heads/main/solo%20icona%20squad%20ita.png" alt="Custom Image" style="display: block; margin: 2rem auto 0 auto; max-width: 300px;" />
-  </div>
-  <div id="factions-container">
-    <div id="faction-one" class="faction-box">
-      <h3>Faction One</h3>
-      <div class="squads-list">Loading squads...</div>
-    </div>
-    <div id="faction-two" class="faction-box">
-      <h3>Faction Two</h3>
-      <div class="squads-list">Loading squads...</div>
-    </div>
   </div>
   <footer>Powered by BattleMetrics API — Auto-refresh every 60 seconds</footer>
 </main>
@@ -137,10 +94,6 @@
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
-  }
-  function shortenTeamName(team) {
-    if (!team) return 'Unknown';
-    return team.split(/[_ ]/)[0];
   }
   async function fetchServer() {
     try {
@@ -157,8 +110,6 @@
       const playersCount = attr.players ?? 0;
       const maxPlayers = attr.maxPlayers ?? 0;
       const uptime = formatUptime(details.squad_playTime);
-      const teamOne = shortenTeamName(details.squad_teamOne);
-      const teamTwo = shortenTeamName(details.squad_teamTwo);
       document.getElementById('server-name').textContent = name;
       document.getElementById('server-info').innerHTML = `
         <div class="card">
@@ -181,34 +132,10 @@
           <label>Uptime</label>
           <div class="value">${uptime}</div>
         </div>
-        <div class="card">
-          <label>Factions</label>
-          <div class="value">${teamOne} vs ${teamTwo}</div>
-        </div>
       `;
-      document.querySelector('#faction-one h3').textContent = teamOne;
-      document.querySelector('#faction-two h3').textContent = teamTwo;
-      const squadsIncluded = serverJson.included || [];
-      const teamOneSquads = [];
-      const teamTwoSquads = [];
-      const teamOneId = details.squad_teamOne || '';
-      const teamTwoId = details.squad_teamTwo || '';
-      squadsIncluded.forEach(squad => {
-        if (squad.type === 'squads') {
-          if (squad.id === teamOneId) {
-            teamOneSquads.push(squad.attributes.name);
-          } else if (squad.id === teamTwoId) {
-            teamTwoSquads.push(squad.attributes.name);
-          }
-        }
-      });
-      document.querySelector('#faction-one .squads-list').innerHTML = teamOneSquads.length ? teamOneSquads.map(s => `<div>${s}</div>`).join('') : '<em>No squads available</em>';
-      document.querySelector('#faction-two .squads-list').innerHTML = teamTwoSquads.length ? teamTwoSquads.map(s => `<div>${s}</div>`).join('') : '<em>No squads available</em>';
     } catch (error) {
       document.getElementById('server-name').textContent = 'Failed to load server info';
       document.getElementById('server-info').textContent = `API error: ${error.message}`;
-      document.querySelector('#faction-one .squads-list').textContent = '';
-      document.querySelector('#faction-two .squads-list').textContent = '';
     }
   }
   fetchServer();
