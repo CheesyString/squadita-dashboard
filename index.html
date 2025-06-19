@@ -93,20 +93,8 @@
     margin-bottom: 1rem;
   }
   .squads-list > div {
-    margin-bottom: 1rem;
-  }
-  .squads-list strong {
-    display: block;
-    font-weight: 700;
-    font-size: 1.1rem;
-    margin-bottom: 0.3rem;
-  }
-  .squads-list ul {
-    margin: 0;
-    padding-left: 1.2rem;
-  }
-  .squads-list li {
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.7rem;
+    text-align: center;
   }
   @media (max-width: 480px) {
     body {
@@ -144,7 +132,6 @@
 <script>
   const SERVER_ID = '34075910';
   const serverApiUrl = `https://api.battlemetrics.com/servers/${SERVER_ID}`;
-  const basePlayersApiUrl = `https://api.battlemetrics.com/players?filter[server]=${SERVER_ID}&filter[status]=online&include=squad&limit=50`;
   function formatUptime(seconds) {
     if (!seconds) return 'N/A';
     const h = Math.floor(seconds / 3600);
@@ -155,37 +142,11 @@
     if (!team) return 'Unknown';
     return team.split(/[_ ]/)[0];
   }
-  function buildSquadsHTML(squads) {
-    if (!squads.length) return '<em>No players online</em>';
-    return squads.map(squad => `
-      <div>
-        <strong>${squad.name}</strong>
-        <ul>
-          ${squad.players.map(p => `<li>${p}</li>`).join('')}
-        </ul>
-      </div>
-    `).join('');
-  }
-  async function fetchAllPlayers(url) {
-    let allPlayers = [];
-    let nextUrl = url;
-    while (nextUrl) {
-      const res = await fetch(nextUrl);
-      if (!res.ok) throw new Error(`Players API error: ${res.status}`);
-      const json = await res.json();
-      allPlayers = allPlayers.concat(json.data);
-      nextUrl = json.links && json.links.next ? json.links.next : null;
-      if(nextUrl && !nextUrl.includes('limit')) {
-        nextUrl += '&limit=50';
-      }
-    }
-    return allPlayers;
-  }
-  async function fetchServerAndPlayers() {
+  async function fetchServer() {
     try {
-      const resServer = await fetch(serverApiUrl);
-      if (!resServer.ok) throw new Error(`Server API error: ${resServer.status}`);
-      const serverJson = await resServer.json();
+      const res = await fetch(serverApiUrl);
+      if (!res.ok) throw new Error(`Server API error: ${res.status}`);
+      const serverJson = await res.json();
       const attr = serverJson.data.attributes;
       const details = attr.details || {};
       const name = attr.name || 'Unknown';
@@ -227,53 +188,22 @@
       `;
       document.querySelector('#faction-one h3').textContent = teamOne;
       document.querySelector('#faction-two h3').textContent = teamTwo;
-      if (playersCount === 0) {
-        document.querySelector('#faction-one .squads-list').innerHTML = '<em>No players online</em>';
-        document.querySelector('#faction-two .squads-list').innerHTML = '<em>No players online</em>';
-        return;
-      }
-      let players;
-      try {
-        players = await fetchAllPlayers(basePlayersApiUrl);
-      } catch {
-        document.querySelector('#faction-one .squads-list').innerHTML = '<em>Players info unavailable</em>';
-        document.querySelector('#faction-two .squads-list').innerHTML = '<em>Players info unavailable</em>';
-        return;
-      }
-      const squadsById = {};
-      if (serverJson.included) {
-        serverJson.included.forEach(squad => {
-          squadsById[squad.id] = squad.attributes.name;
-        });
-      }
-      players.forEach(p => {
-        if (p.relationships && p.relationships.squad && p.relationships.squad.data && !squadsById[p.relationships.squad.data.id]) {
-          squadsById[p.relationships.squad.data.id] = 'Unknown Squad';
-        }
-      });
-      const squadsGrouped = {};
-      players.forEach(player => {
-        const squadID = player.relationships?.squad?.data?.id || 'no_squad';
-        if (!squadsGrouped[squadID]) squadsGrouped[squadID] = [];
-        squadsGrouped[squadID].push(player.attributes.name);
-      });
-      const factionOneSquads = [];
-      const factionTwoSquads = [];
-      const noFactionSquads = [];
+      const squadsIncluded = serverJson.included || [];
+      const teamOneSquads = [];
+      const teamTwoSquads = [];
       const teamOneId = details.squad_teamOne || '';
       const teamTwoId = details.squad_teamTwo || '';
-      for (const [squadID, members] of Object.entries(squadsGrouped)) {
-        const squadName = squadsById[squadID] || 'No Squad';
-        if (squadID === teamOneId) {
-          factionOneSquads.push({ name: squadName, players: members });
-        } else if (squadID === teamTwoId) {
-          factionTwoSquads.push({ name: squadName, players: members });
-        } else {
-          noFactionSquads.push({ name: squadName, players: members });
+      squadsIncluded.forEach(squad => {
+        if (squad.type === 'squads') {
+          if (squad.id === teamOneId) {
+            teamOneSquads.push(squad.attributes.name);
+          } else if (squad.id === teamTwoId) {
+            teamTwoSquads.push(squad.attributes.name);
+          }
         }
-      }
-      document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
-      document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
+      });
+      document.querySelector('#faction-one .squads-list').innerHTML = teamOneSquads.length ? teamOneSquads.map(s => `<div>${s}</div>`).join('') : '<em>No squads available</em>';
+      document.querySelector('#faction-two .squads-list').innerHTML = teamTwoSquads.length ? teamTwoSquads.map(s => `<div>${s}</div>`).join('') : '<em>No squads available</em>';
     } catch (error) {
       document.getElementById('server-name').textContent = 'Failed to load server info';
       document.getElementById('server-info').textContent = `API error: ${error.message}`;
@@ -281,8 +211,8 @@
       document.querySelector('#faction-two .squads-list').textContent = '';
     }
   }
-  fetchServerAndPlayers();
-  setInterval(fetchServerAndPlayers, 60000);
+  fetchServer();
+  setInterval(fetchServer, 60000);
 </script>
 </body>
 </html>
