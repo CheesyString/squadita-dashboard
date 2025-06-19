@@ -293,13 +293,8 @@
 
       const players = playersJson.data || [];
       const includedSquads = playersJson.included?.filter(i => i.type === 'squad') || [];
-
-      // Team detection: this part you may want to adjust based on real data; 
-      // Here, fallback to 'Unknown' since team might not be directly accessible
-      // You might parse from player.attributes.tags or custom fields if available
       const playersWithTeam = players.map(p => {
         const attr = p.attributes || {};
-        // Example: if team info is stored in a tag like 'team_WPMC' etc
         let teamName = 'Unknown';
         if (attr.tags && attr.tags.length) {
           const teamTag = attr.tags.find(t => t.toLowerCase().includes('team'));
