@@ -166,26 +166,6 @@
       </div>
     `).join('');
   }
-  function groupPlayersBySquad(players, includedSquads) {
-    const squadsMap = {};
-    const squadIdToName = {};
-    if (includedSquads && Array.isArray(includedSquads)) {
-      includedSquads.forEach(squad => {
-        if (squad.id && squad.attributes && squad.attributes.name) {
-          squadIdToName[squad.id] = squad.attributes.name;
-        }
-      });
-    }
-    players.forEach(player => {
-      const squadID = player.relationships && player.relationships.squad && player.relationships.squad.data
-        ? player.relationships.squad.data.id
-        : null;
-      const squadName = squadID ? (squadIdToName[squadID] || `Squad ${squadID}`) : 'No Squad';
-      if (!squadsMap[squadName]) squadsMap[squadName] = [];
-      squadsMap[squadName].push(player.attributes.name || 'Unknown');
-    });
-    return Object.entries(squadsMap).map(([name, players]) => ({ name, players }));
-  }
   async function fetchAllPlayers(url) {
     let allPlayers = [];
     let nextUrl = url;
@@ -252,68 +232,51 @@
         document.querySelector('#faction-two .squads-list').innerHTML = '<em>No players online</em>';
         return;
       }
-      let players, playersJson;
+      let players;
       try {
         players = await fetchAllPlayers(basePlayersApiUrl);
-      } catch (e) {
+      } catch {
         document.querySelector('#faction-one .squads-list').innerHTML = '<em>Players info unavailable</em>';
         document.querySelector('#faction-two .squads-list').innerHTML = '<em>Players info unavailable</em>';
         return;
       }
-      playersJson = { data: players, included: [] };
-      playersJson.included = [];
+      const squadsById = {};
+      if (serverJson.included) {
+        serverJson.included.forEach(squad => {
+          squadsById[squad.id] = squad.attributes.name;
+        });
+      }
       players.forEach(p => {
-        if (p.relationships && p.relationships.squad && p.relationships.squad.data) {
-          playersJson.included.push(p.relationships.squad.data);
+        if (p.relationships && p.relationships.squad && p.relationships.squad.data && !squadsById[p.relationships.squad.data.id]) {
+          squadsById[p.relationships.squad.data.id] = 'Unknown Squad';
         }
       });
-      playersJson.included = Array.from(new Map(playersJson.included.map(i => [i.id, i])).values());
-      const playersWithTeam = players.map(p => {
-        const attr = p.attributes || {};
-        let teamName = 'Unknown';
-        if (attr.tags && attr.tags.length) {
-          const teamTag = attr.tags.find(t => t.toLowerCase().includes('team'));
-          if (teamTag) teamName = teamTag.replace(/team_/i, '');
-        }
-        return { ...p, attributes: { ...attr, teamName } };
+      const squadsGrouped = {};
+      players.forEach(player => {
+        const squadID = player.relationships?.squad?.data?.id || 'no_squad';
+        if (!squadsGrouped[squadID]) squadsGrouped[squadID] = [];
+        squadsGrouped[squadID].push(player.attributes.name);
       });
-      const factionOnePlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamOne.toLowerCase());
-      const factionTwoPlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamTwo.toLowerCase());
-const factionOneSquads = [];
-const factionTwoSquads = [];
-const noFactionSquads = [];
-
-const teamOneId = serverJson.data.attributes.details.squad_teamOne;
-const teamTwoId = serverJson.data.attributes.details.squad_teamTwo;
-
-const squadsById = {};
-playersJson.included.forEach(squad => {
-  squadsById[squad.id] = squad.attributes.name;
-});
-
-const squadsGrouped = {};
-players.forEach(player => {
-  const squadID = player.relationships?.squad?.data?.id || 'no_squad';
-  if (!squadsGrouped[squadID]) squadsGrouped[squadID] = [];
-  squadsGrouped[squadID].push(player.attributes.name);
-});
-
-for (const [squadID, members] of Object.entries(squadsGrouped)) {
-  const squadName = squadsById[squadID] || 'No Squad';
-  if (squadID === teamOneId) {
-    factionOneSquads.push({ name: squadName, players: members });
-  } else if (squadID === teamTwoId) {
-    factionTwoSquads.push({ name: squadName, players: members });
-  } else {
-    noFactionSquads.push({ name: squadName, players: members });
-  }
-}
-
-document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
-document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
-    } catch (e) {
-      document.getElementById('server-name').textContent = '';
-      document.getElementById('server-info').innerHTML = `<div style="color:#f04747;">Failed to load server info: ${e.message}</div>`;
+      const factionOneSquads = [];
+      const factionTwoSquads = [];
+      const noFactionSquads = [];
+      const teamOneId = details.squad_teamOne || '';
+      const teamTwoId = details.squad_teamTwo || '';
+      for (const [squadID, members] of Object.entries(squadsGrouped)) {
+        const squadName = squadsById[squadID] || 'No Squad';
+        if (squadID === teamOneId) {
+          factionOneSquads.push({ name: squadName, players: members });
+        } else if (squadID === teamTwoId) {
+          factionTwoSquads.push({ name: squadName, players: members });
+        } else {
+          noFactionSquads.push({ name: squadName, players: members });
+        }
+      }
+      document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
+      document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
+    } catch (error) {
+      document.getElementById('server-name').textContent = 'Failed to load server info';
+      document.getElementById('server-info').textContent = `API error: ${error.message}`;
       document.querySelector('#faction-one .squads-list').textContent = '';
       document.querySelector('#faction-two .squads-list').textContent = '';
     }
