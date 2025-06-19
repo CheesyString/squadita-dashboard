@@ -5,58 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Squad Italia Server Dashboard</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
   body {
-    font-family: Arial, sans-serif;
-    max-width: 600px;
-    margin: 2rem auto;
-    padding: 1rem;
-    background: #222;
-    color: #eee;
+    font-family: 'Montserrat', sans-serif;
+    background: #121212;
+    color: #eeeeee;
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
   }
+
+  main {
+    max-width: 700px;
+    width: 100%;
+  }
+
   h1 {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    letter-spacing: 0.05em;
   }
+
+  #server-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .card {
+    background: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgb(0 0 0 / 0.4);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #999;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .card .value {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #fff;
+  }
+
   .status-online {
     color: #43b581;
   }
+
   .status-offline {
     color: #f04747;
   }
-  .field {
-    margin-bottom: 1rem;
-  }
-  .field label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 0.25rem;
-    color: #bbb;
-  }
-  .field .value {
-    font-size: 1.2rem;
-  }
+
   footer {
     margin-top: 3rem;
-    font-size: 0.8rem;
     text-align: center;
-    color: #666;
+    color: #555;
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+
+  @media (max-width: 480px) {
+    body {
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    .card .value {
+      font-size: 1.1rem;
+    }
   }
 </style>
 </head>
 <body>
-
-<h1>Squad Italia Server Dashboard</h1>
-
-<div id="server-info">
-  Loading server info...
-</div>
-
-<footer>
-  Powered by BattleMetrics API — Auto-refresh every 60 seconds
-</footer>
+<main>
+  <h1>Squad Italia Server Dashboard</h1>
+  <div id="server-info">
+    Loading server info...
+  </div>
+  <footer>
+    Powered by BattleMetrics API — Auto-refresh every 60 seconds
+  </footer>
+</main>
 
 <script>
-  const SERVER_ID = '34075910';
+  const SERVER_ID = 'YOUR_SERVER_ID_HERE'; // ← replace with your BattleMetrics server ID
   const apiUrl = `https://api.battlemetrics.com/servers/${SERVER_ID}`;
 
   function formatUptime(seconds) {
@@ -68,7 +113,6 @@
 
   function shortenTeamName(team) {
     if (!team) return 'Unknown';
-    // Take first part before underscore or space
     return team.split(/[_ ]/)[0];
   }
 
@@ -93,13 +137,34 @@
       const teamTwo = shortenTeamName(details.squad_teamTwo);
 
       document.getElementById('server-info').innerHTML = `
-        <div class="field"><label>Server Name:</label> <div class="value">${name}</div></div>
-        <div class="field"><label>Status:</label> <div class="value ${statusClass}">${status}</div></div>
-        <div class="field"><label>Map:</label> <div class="value">${map}</div></div>
-        <div class="field"><label>Game Mode:</label> <div class="value">${gameMode}</div></div>
-        <div class="field"><label>Players:</label> <div class="value">${players} / ${maxPlayers}</div></div>
-        <div class="field"><label>Uptime:</label> <div class="value">${uptime}</div></div>
-        <div class="field"><label>Factions:</label> <div class="value">${teamOne} vs ${teamTwo}</div></div>
+        <div class="card">
+          <label>Server Name</label>
+          <div class="value">${name}</div>
+        </div>
+        <div class="card">
+          <label>Status</label>
+          <div class="value ${statusClass}">${status}</div>
+        </div>
+        <div class="card">
+          <label>Map</label>
+          <div class="value">${map}</div>
+        </div>
+        <div class="card">
+          <label>Game Mode</label>
+          <div class="value">${gameMode}</div>
+        </div>
+        <div class="card">
+          <label>Players</label>
+          <div class="value">${players} / ${maxPlayers}</div>
+        </div>
+        <div class="card">
+          <label>Uptime</label>
+          <div class="value">${uptime}</div>
+        </div>
+        <div class="card">
+          <label>Factions</label>
+          <div class="value">${teamOne} vs ${teamTwo}</div>
+        </div>
       `;
     } catch (e) {
       document.getElementById('server-info').innerHTML = `<div style="color:#f04747;">Failed to load server info: ${e.message}</div>`;
@@ -109,6 +174,5 @@
   fetchServer();
   setInterval(fetchServer, 60000); // Refresh every 60 seconds
 </script>
-
 </body>
 </html>
