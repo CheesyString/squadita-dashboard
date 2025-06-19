@@ -25,14 +25,23 @@
   h1 {
     font-weight: 700;
     font-size: 2.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.25rem;
     text-align: center;
     letter-spacing: 0.05em;
   }
 
+  #server-name {
+    text-align: right;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #bbb;
+    margin-bottom: 1.25rem;
+    word-break: break-word;
+  }
+
   #server-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
   }
 
@@ -43,6 +52,7 @@
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
+    word-break: break-word;
   }
 
   .card label {
@@ -92,6 +102,7 @@
 <body>
 <main>
   <h1>Squad Italia Server Dashboard</h1>
+  <div id="server-name">Loading server name...</div>
   <div id="server-info">
     Loading server info...
   </div>
@@ -136,11 +147,9 @@
       const teamOne = shortenTeamName(details.squad_teamOne);
       const teamTwo = shortenTeamName(details.squad_teamTwo);
 
+      document.getElementById('server-name').textContent = name;
+
       document.getElementById('server-info').innerHTML = `
-        <div class="card">
-          <label>Server Name</label>
-          <div class="value">${name}</div>
-        </div>
         <div class="card">
           <label>Status</label>
           <div class="value ${statusClass}">${status}</div>
@@ -167,6 +176,7 @@
         </div>
       `;
     } catch (e) {
+      document.getElementById('server-name').textContent = '';
       document.getElementById('server-info').innerHTML = `<div style="color:#f04747;">Failed to load server info: ${e.message}</div>`;
     }
   }
@@ -174,5 +184,6 @@
   fetchServer();
   setInterval(fetchServer, 60000); // Refresh every 60 seconds
 </script>
+
 </body>
 </html>
