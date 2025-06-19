@@ -95,6 +95,10 @@
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
   }
+  function shortenTeamName(team) {
+    if (!team) return 'Unknown';
+    return team.split(/[_ ]/)[0];
+  }
   async function fetchServer() {
     try {
       const res = await fetch(serverApiUrl);
@@ -110,6 +114,8 @@
       const playersCount = attr.players ?? 0;
       const maxPlayers = attr.maxPlayers ?? 0;
       const uptime = formatUptime(details.squad_playTime);
+      const teamOne = shortenTeamName(details.squad_teamOne);
+      const teamTwo = shortenTeamName(details.squad_teamTwo);
       document.getElementById('server-name').textContent = name;
       document.getElementById('server-info').innerHTML = `
         <div class="card">
@@ -131,6 +137,10 @@
         <div class="card">
           <label>Uptime</label>
           <div class="value">${uptime}</div>
+        </div>
+        <div class="card">
+          <label>Factions</label>
+          <div class="value">${teamOne} vs ${teamTwo}</div>
         </div>
       `;
     } catch (error) {
