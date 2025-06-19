@@ -155,7 +155,7 @@
          style="display: block; margin: 2rem auto 0 auto; max-width: 300px;" />
   </div>
 
-  <!-- NEW: Factions container -->
+  <!-- Factions container -->
   <div id="factions-container">
     <div id="faction-one" class="faction-box">
       <h3>Faction One</h3>
@@ -174,7 +174,8 @@
 
 <script>
   const SERVER_ID = '34075910';
-  const apiUrl = `https://api.battlemetrics.com/servers/${SERVER_ID}`;
+  const serverApiUrl = `https://api.battlemetrics.com/servers/${SERVER_ID}`;
+  const playersApiUrl = `https://api.battlemetrics.com/players?filter[server]=${SERVER_ID}&filter[status]=online&include=squad`;
 
   function formatUptime(seconds) {
     if (!seconds) return 'N/A';
@@ -189,6 +190,9 @@
   }
 
   function buildSquadsHTML(squads) {
+    if (!squads.length) {
+      return '<em>No players online</em>';
+    }
     return squads.map(squad => `
       <div>
         <strong>${squad.name}</strong>
@@ -199,13 +203,39 @@
     `).join('');
   }
 
-  async function fetchServer() {
-    try {
-      const res = await fetch(apiUrl);
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+  function groupPlayersBySquad(players, includedSquads) {
+    const squadsMap = {};
 
-      const json = await res.json();
-      const attr = json.data.attributes;
+    const squadIdToName = {};
+    if (includedSquads && Array.isArray(includedSquads)) {
+      includedSquads.forEach(squad => {
+        if (squad.id && squad.attributes && squad.attributes.name) {
+          squadIdToName[squad.id] = squad.attributes.name;
+        }
+      });
+    }
+
+    players.forEach(player => {
+      const squadID = player.relationships && player.relationships.squad && player.relationships.squad.data
+        ? player.relationships.squad.data.id
+        : null;
+
+      const squadName = squadID ? (squadIdToName[squadID] || `Squad ${squadID}`) : 'No Squad';
+
+      if (!squadsMap[squadName]) squadsMap[squadName] = [];
+      squadsMap[squadName].push(player.attributes.name || 'Unknown');
+    });
+
+    return Object.entries(squadsMap).map(([name, players]) => ({ name, players }));
+  }
+
+  async function fetchServerAndPlayers() {
+    try {
+      const resServer = await fetch(serverApiUrl);
+      if (!resServer.ok) throw new Error(`Server API error: ${resServer.status}`);
+      const serverJson = await resServer.json();
+
+      const attr = serverJson.data.attributes;
       const details = attr.details || {};
 
       const name = attr.name || 'Unknown';
@@ -213,7 +243,7 @@
       const statusClass = attr.status === 'online' ? 'status-online' : 'status-offline';
       const map = details.map || 'Unknown';
       const gameMode = details.gameMode || 'Squad';
-      const players = attr.players ?? 0;
+      const playersCount = attr.players ?? 0;
       const maxPlayers = attr.maxPlayers ?? 0;
       const uptime = formatUptime(details.squad_playTime);
       const teamOne = shortenTeamName(details.squad_teamOne);
@@ -236,7 +266,7 @@
         </div>
         <div class="card">
           <label>Players</label>
-          <div class="value">${players} / ${maxPlayers}</div>
+          <div class="value">${playersCount} / ${maxPlayers}</div>
         </div>
         <div class="card">
           <label>Uptime</label>
@@ -248,21 +278,48 @@
         </div>
       `;
 
-      // MOCK squads & players - replace with real data source if available
-      const factionOneSquads = [
-        { name: 'Alpha Squad', players: ['Player1', 'Player2', 'Player3'] },
-        { name: 'Bravo Squad', players: ['Player4', 'Player5'] },
-      ];
-      const factionTwoSquads = [
-        { name: 'Charlie Squad', players: ['Player6', 'Player7'] },
-        { name: 'Delta Squad', players: ['Player8', 'Player9', 'Player10'] },
-      ];
-
-      // Update faction headers
       document.querySelector('#faction-one h3').textContent = teamOne;
       document.querySelector('#faction-two h3').textContent = teamTwo;
 
-      // Update squads list
+      if (playersCount === 0) {
+        document.querySelector('#faction-one .squads-list').innerHTML = '<em>No players online</em>';
+        document.querySelector('#faction-two .squads-list').innerHTML = '<em>No players online</em>';
+        return;
+      }
+
+      const resPlayers = await fetch(playersApiUrl);
+      if (!resPlayers.ok) throw new Error(`Players API error: ${resPlayers.status}`);
+      const playersJson = await resPlayers.json();
+
+      const players = playersJson.data || [];
+      const includedSquads = playersJson.included?.filter(i => i.type === 'squad') || [];
+
+      // Team detection: this part you may want to adjust based on real data; 
+      // Here, fallback to 'Unknown' since team might not be directly accessible
+      // You might parse from player.attributes.tags or custom fields if available
+      const playersWithTeam = players.map(p => {
+        const attr = p.attributes || {};
+        // Example: if team info is stored in a tag like 'team_WPMC' etc
+        let teamName = 'Unknown';
+        if (attr.tags && attr.tags.length) {
+          const teamTag = attr.tags.find(t => t.toLowerCase().includes('team'));
+          if (teamTag) teamName = teamTag.replace(/team_/i, '');
+        }
+        return {
+          ...p,
+          attributes: {
+            ...attr,
+            teamName
+          }
+        };
+      });
+
+      const factionOnePlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamOne.toLowerCase());
+      const factionTwoPlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamTwo.toLowerCase());
+
+      const factionOneSquads = groupPlayersBySquad(factionOnePlayers, includedSquads);
+      const factionTwoSquads = groupPlayersBySquad(factionTwoPlayers, includedSquads);
+
       document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
       document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
 
@@ -274,9 +331,8 @@
     }
   }
 
-  fetchServer();
-  setInterval(fetchServer, 60000); // Refresh every 60 seconds
+  fetchServerAndPlayers();
+  setInterval(fetchServerAndPlayers, 60000);
 </script>
-
 </body>
 </html>
