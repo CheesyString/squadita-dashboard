@@ -6,7 +6,6 @@
 <title>Squad Italia Server Dashboard</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
-
   body {
     font-family: 'Montserrat', sans-serif;
     background: #121212;
@@ -16,12 +15,10 @@
     display: flex;
     justify-content: center;
   }
-
   main {
     max-width: 700px;
     width: 100%;
   }
-
   h1 {
     font-weight: 700;
     font-size: 2.5rem;
@@ -29,7 +26,6 @@
     text-align: center;
     letter-spacing: 0.05em;
   }
-
   #server-name {
     text-align: right;
     font-weight: 600;
@@ -38,13 +34,11 @@
     margin-bottom: 1.25rem;
     word-break: break-word;
   }
-
   #server-info {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
   }
-
   .card {
     background: #1e1e1e;
     border-radius: 12px;
@@ -54,7 +48,6 @@
     flex-direction: column;
     word-break: break-word;
   }
-
   .card label {
     font-weight: 600;
     font-size: 1rem;
@@ -63,21 +56,17 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
-
   .card .value {
     font-weight: 700;
     font-size: 1.3rem;
     color: #fff;
   }
-
   .status-online {
     color: #43b581;
   }
-
   .status-offline {
     color: #f04747;
   }
-
   footer {
     margin-top: 3rem;
     text-align: center;
@@ -85,8 +74,6 @@
     font-size: 0.9rem;
     font-style: italic;
   }
-
-  /* Factions container styles */
   #factions-container {
     display: flex;
     justify-content: center;
@@ -94,7 +81,6 @@
     margin-top: 2rem;
     flex-wrap: wrap;
   }
-
   .faction-box {
     flex: 1 1 300px;
     background: #1e1e1e;
@@ -102,32 +88,26 @@
     padding: 1rem;
     box-shadow: 0 8px 16px rgba(0,0,0,0.4);
   }
-
   .faction-box h3 {
     text-align: center;
     margin-bottom: 1rem;
   }
-
   .squads-list > div {
     margin-bottom: 1rem;
   }
-
   .squads-list strong {
     display: block;
     font-weight: 700;
     font-size: 1.1rem;
     margin-bottom: 0.3rem;
   }
-
   .squads-list ul {
     margin: 0;
     padding-left: 1.2rem;
   }
-
   .squads-list li {
     margin-bottom: 0.15rem;
   }
-
   @media (max-width: 480px) {
     body {
       padding: 1rem;
@@ -145,17 +125,10 @@
 <main>
   <h1>Squad Italia Server Dashboard</h1>
   <div id="server-name">Loading server name...</div>
-  <div id="server-info">
-    Loading server info...
-  </div>
-
+  <div id="server-info">Loading server info...</div>
   <div style="text-align: center; margin-top: 2rem;">
-    <img src="https://raw.githubusercontent.com/CheesyString/squadita-dashboard/refs/heads/main/solo%20icona%20squad%20ita.png" 
-         alt="Custom Image" 
-         style="display: block; margin: 2rem auto 0 auto; max-width: 300px;" />
+    <img src="https://raw.githubusercontent.com/CheesyString/squadita-dashboard/refs/heads/main/solo%20icona%20squad%20ita.png" alt="Custom Image" style="display: block; margin: 2rem auto 0 auto; max-width: 300px;" />
   </div>
-
-  <!-- Factions container -->
   <div id="factions-container">
     <div id="faction-one" class="faction-box">
       <h3>Faction One</h3>
@@ -166,33 +139,24 @@
       <div class="squads-list">Loading squads...</div>
     </div>
   </div>
-
-  <footer>
-    Powered by BattleMetrics API — Auto-refresh every 60 seconds
-  </footer>
+  <footer>Powered by BattleMetrics API — Auto-refresh every 60 seconds</footer>
 </main>
-
 <script>
   const SERVER_ID = '34075910';
   const serverApiUrl = `https://api.battlemetrics.com/servers/${SERVER_ID}`;
-  const playersApiUrl = `https://api.battlemetrics.com/players?filter[server]=${SERVER_ID}&filter[status]=online&include=squad`;
-
+  const basePlayersApiUrl = `https://api.battlemetrics.com/players?filter[server]=${SERVER_ID}&filter[status]=online&include=squad&limit=50`;
   function formatUptime(seconds) {
     if (!seconds) return 'N/A';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
   }
-
   function shortenTeamName(team) {
     if (!team) return 'Unknown';
     return team.split(/[_ ]/)[0];
   }
-
   function buildSquadsHTML(squads) {
-    if (!squads.length) {
-      return '<em>No players online</em>';
-    }
+    if (!squads.length) return '<em>No players online</em>';
     return squads.map(squad => `
       <div>
         <strong>${squad.name}</strong>
@@ -202,10 +166,8 @@
       </div>
     `).join('');
   }
-
   function groupPlayersBySquad(players, includedSquads) {
     const squadsMap = {};
-
     const squadIdToName = {};
     if (includedSquads && Array.isArray(includedSquads)) {
       includedSquads.forEach(squad => {
@@ -214,30 +176,38 @@
         }
       });
     }
-
     players.forEach(player => {
       const squadID = player.relationships && player.relationships.squad && player.relationships.squad.data
         ? player.relationships.squad.data.id
         : null;
-
       const squadName = squadID ? (squadIdToName[squadID] || `Squad ${squadID}`) : 'No Squad';
-
       if (!squadsMap[squadName]) squadsMap[squadName] = [];
       squadsMap[squadName].push(player.attributes.name || 'Unknown');
     });
-
     return Object.entries(squadsMap).map(([name, players]) => ({ name, players }));
   }
-
+  async function fetchAllPlayers(url) {
+    let allPlayers = [];
+    let nextUrl = url;
+    while (nextUrl) {
+      const res = await fetch(nextUrl);
+      if (!res.ok) throw new Error(`Players API error: ${res.status}`);
+      const json = await res.json();
+      allPlayers = allPlayers.concat(json.data);
+      nextUrl = json.links && json.links.next ? json.links.next : null;
+      if(nextUrl && !nextUrl.includes('limit')) {
+        nextUrl += '&limit=50';
+      }
+    }
+    return allPlayers;
+  }
   async function fetchServerAndPlayers() {
     try {
       const resServer = await fetch(serverApiUrl);
       if (!resServer.ok) throw new Error(`Server API error: ${resServer.status}`);
       const serverJson = await resServer.json();
-
       const attr = serverJson.data.attributes;
       const details = attr.details || {};
-
       const name = attr.name || 'Unknown';
       const status = attr.status === 'online' ? 'Online' : 'Offline';
       const statusClass = attr.status === 'online' ? 'status-online' : 'status-offline';
@@ -248,9 +218,7 @@
       const uptime = formatUptime(details.squad_playTime);
       const teamOne = shortenTeamName(details.squad_teamOne);
       const teamTwo = shortenTeamName(details.squad_teamTwo);
-
       document.getElementById('server-name').textContent = name;
-
       document.getElementById('server-info').innerHTML = `
         <div class="card">
           <label>Status</label>
@@ -277,22 +245,29 @@
           <div class="value">${teamOne} vs ${teamTwo}</div>
         </div>
       `;
-
       document.querySelector('#faction-one h3').textContent = teamOne;
       document.querySelector('#faction-two h3').textContent = teamTwo;
-
       if (playersCount === 0) {
         document.querySelector('#faction-one .squads-list').innerHTML = '<em>No players online</em>';
         document.querySelector('#faction-two .squads-list').innerHTML = '<em>No players online</em>';
         return;
       }
-
-      const resPlayers = await fetch(playersApiUrl);
-      if (!resPlayers.ok) throw new Error(`Players API error: ${resPlayers.status}`);
-      const playersJson = await resPlayers.json();
-
-      const players = playersJson.data || [];
-      const includedSquads = playersJson.included?.filter(i => i.type === 'squad') || [];
+      let players, playersJson;
+      try {
+        players = await fetchAllPlayers(basePlayersApiUrl);
+      } catch (e) {
+        document.querySelector('#faction-one .squads-list').innerHTML = '<em>Players info unavailable</em>';
+        document.querySelector('#faction-two .squads-list').innerHTML = '<em>Players info unavailable</em>';
+        return;
+      }
+      playersJson = { data: players, included: [] };
+      playersJson.included = [];
+      players.forEach(p => {
+        if (p.relationships && p.relationships.squad && p.relationships.squad.data) {
+          playersJson.included.push(p.relationships.squad.data);
+        }
+      });
+      playersJson.included = Array.from(new Map(playersJson.included.map(i => [i.id, i])).values());
       const playersWithTeam = players.map(p => {
         const attr = p.attributes || {};
         let teamName = 'Unknown';
@@ -300,24 +275,14 @@
           const teamTag = attr.tags.find(t => t.toLowerCase().includes('team'));
           if (teamTag) teamName = teamTag.replace(/team_/i, '');
         }
-        return {
-          ...p,
-          attributes: {
-            ...attr,
-            teamName
-          }
-        };
+        return { ...p, attributes: { ...attr, teamName } };
       });
-
       const factionOnePlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamOne.toLowerCase());
       const factionTwoPlayers = playersWithTeam.filter(p => p.attributes.teamName.toLowerCase() === teamTwo.toLowerCase());
-
-      const factionOneSquads = groupPlayersBySquad(factionOnePlayers, includedSquads);
-      const factionTwoSquads = groupPlayersBySquad(factionTwoPlayers, includedSquads);
-
+      const factionOneSquads = groupPlayersBySquad(factionOnePlayers, playersJson.included);
+      const factionTwoSquads = groupPlayersBySquad(factionTwoPlayers, playersJson.included);
       document.querySelector('#faction-one .squads-list').innerHTML = buildSquadsHTML(factionOneSquads);
       document.querySelector('#faction-two .squads-list').innerHTML = buildSquadsHTML(factionTwoSquads);
-
     } catch (e) {
       document.getElementById('server-name').textContent = '';
       document.getElementById('server-info').innerHTML = `<div style="color:#f04747;">Failed to load server info: ${e.message}</div>`;
@@ -325,7 +290,6 @@
       document.querySelector('#faction-two .squads-list').textContent = '';
     }
   }
-
   fetchServerAndPlayers();
   setInterval(fetchServerAndPlayers, 60000);
 </script>
